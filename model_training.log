@@ -1,0 +1,18 @@
+2026-06-15 18:46:46,733 [INFO] Starting XGBoost 6-hour ahead risk model training...
+2026-06-15 18:46:48,461 [INFO] Loaded feature dataset with 43824 records.
+2026-06-15 18:46:48,552 [INFO] Selected features for model: ['Kp', 'Dst', 'ap', 'Kp_rolling_mean_6h', 'Kp_rolling_std_6h', 'Dst_rolling_mean_6h', 'Dst_rolling_std_6h', 'Kp_lag_6h', 'Dst_lag_6h', 'ap_lag_6h', 'Kp_trend_6h_vs_24h', 'Dst_trend_6h_vs_24h']
+2026-06-15 18:46:48,569 [INFO] Train set size: 35054, Test set size: 8764
+2026-06-15 18:46:48,569 [INFO] Initializing Grid Search CV for XGBoost Regressor...
+2026-06-15 18:47:25,849 [INFO] Best hyperparameters found: {'learning_rate': 0.1, 'max_depth': 7, 'n_estimators': 150, 'subsample': 0.8}
+2026-06-15 18:47:25,894 [INFO] Model evaluation metrics: MAE=0.8015, RMSE=1.0347, R2=0.5158, ClassAcc=81.87%
+2026-06-15 18:47:25,906 [INFO] Saved trained XGBoost model to: D:\minip_AG_1006\models\xgboost_risk_model.pkl
+2026-06-15 18:47:26,498 [INFO] Saved feature importance chart.
+2026-06-15 18:47:26,509 [INFO] Starting XGBoost 3-hour ahead TEC model training...
+2026-06-15 18:47:28,131 [INFO] Loaded feature dataset with 43824 records.
+2026-06-15 18:47:28,199 [INFO] Selected features for TEC model: ['Kp', 'Dst', 'ap', 'TEC', 'TEC_lag_1h', 'TEC_lag_2h', 'TEC_lag_3h', 'Kp_lag_1h', 'Kp_lag_2h', 'Kp_lag_3h', 'Dst_lag_1h', 'Dst_lag_2h', 'Dst_lag_3h', 'ap_lag_1h', 'ap_lag_2h', 'ap_lag_3h', 'Kp_rolling_mean_6h', 'Dst_rolling_mean_6h', 'TEC_rolling_mean_6h', 'Kp_rolling_std_6h', 'Dst_rolling_std_6h', 'TEC_rolling_std_6h', 'Kp_lag_6h', 'Dst_lag_6h', 'ap_lag_6h', 'TEC_lag_6h', 'Kp_trend_6h_vs_24h', 'Dst_trend_6h_vs_24h', 'TEC_trend_6h_vs_24h']
+2026-06-15 18:47:28,235 [INFO] Train set size: 35056, Test set size: 8765
+2026-06-15 18:47:28,236 [INFO] Initializing Grid Search CV for XGBoost Regressor (TEC)...
+2026-06-15 18:48:25,217 [INFO] Best hyperparameters found for TEC: {'learning_rate': 0.1, 'max_depth': 7, 'n_estimators': 150, 'subsample': 1.0}
+2026-06-15 18:48:25,258 [INFO] TEC Model evaluation metrics: MAE=2.2638, RMSE=3.9994, R2=0.6071, Within5TECU=92.15%, RangeAcc=98.16%
+2026-06-15 18:48:25,268 [INFO] Saved trained XGBoost TEC model to: D:\minip_AG_1006\models\xgboost_tec_model.pkl
+2026-06-15 18:48:26,149 [INFO] Saved TEC feature importance chart.

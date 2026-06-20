@@ -1,0 +1,13 @@
+{
+    "MAE": 2.2637607813108764,
+    "RMSE": 3.999400173808165,
+    "R2": 0.6071254133469677,
+    "PercentageWithin5TECU": 92.15059897318882,
+    "RangeBasedAccuracy": 98.15815575941012,
+    "best_params": {
+        "learning_rate": 0.1,
+        "max_depth": 7,
+        "n_estimators": 150,
+        "subsample": 1.0
+    }
+}

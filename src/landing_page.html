@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Activity and Geomag Risk Score Analysis</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at center, #0c1020 0%, #03050a 100%);
+            color: #e2e8f0;
+            overflow-x: hidden;
+            padding: 20px;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #03050a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+
+        .container {
+            max-width: 1500px;
+            width: 96%;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 10px 0;
+        }
+
+        .badge {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: inline-block;
+            margin-bottom: 12px;
+            color: #a78bfa;
+            font-weight: 600;
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.15);
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #ffffff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #94a3b8;
+            max-width: 700px;
+            margin: 0 auto;
+            font-weight: 300;
+        }
+
+        /* Glassmorphism widescreen card */
+        .widescreen-panel {
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            margin-bottom: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .widescreen-panel:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 45px rgba(124, 58, 237, 0.05);
+        }
+
+        /* Simulator container and HUD elements */
+        .sim-container {
+            position: relative;
+            background: radial-gradient(circle at left, #0e0a16 0%, #03050a 100%);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            height: 560px;
+            width: 100%;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* HUD Labels Overlay (matches diagram layout) */
+        .sim-labels-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .sim-label {
+            position: absolute;
+            font-family: 'Outfit', sans-serif;
+            color: #ffffff;
+            opacity: 0.3;
+            transform: scale(0.95);
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.9);
+        }
+
+        .sim-label.active {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        .label-title {
+            font-weight: 800;
+            font-size: 1.1rem;
+            letter-spacing: 1.5px;
+        }
+
+        .label-subtitle {
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 2px;
+        }
+
+        .color-solar {
+            color: #f59e0b;
+            /* Solar Flare Amber */
+            text-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+        }
+
+        .color-cme {
+            color: #f97316;
+            /* CME Orange */
+            text-shadow: 0 0 10px rgba(249, 115, 22, 0.4);
+        }
+
+        .color-earth {
+            color: #60a5fa;
+            /* Earth Blue */
+            text-shadow: 0 0 10px rgba(96, 165, 250, 0.4);
+        }
+
+        /* Pointer Lines matching the user's diagram */
+        .pointer-line {
+            height: 35px;
+            width: 1px;
+            background: rgba(255, 255, 255, 0.2);
+            margin: 8px auto 0 auto;
+            position: relative;
+            transition: all 0.6s ease;
+        }
+
+        .sim-label.active .pointer-line {
+            background: currentColor;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .line-sun::after,
+        .line-cme::after,
+        .line-earth::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -2px;
+            width: 5px;
+            height: 5px;
+            background: currentColor;
+            border-radius: 50%;
+        }
+
+        /* Layout placement of diagram text elements */
+        .label-sun {
+            top: 15%;
+            left: 20%;
+            text-align: center;
+        }
+
+        .label-cme {
+            top: 15%;
+            left: 48%;
+            text-align: center;
+        }
+
+        .label-earth {
+            top: 15%;
+            left: 76%;
+            text-align: center;
+        }
+
+        .label-sun .pointer-line {
+            transform: rotate(45deg);
+            transform-origin: top center;
+        }
+
+        .label-cme .pointer-line {
+            transform: rotate(0deg);
+        }
+
+        .label-earth .pointer-line {
+            transform: rotate(-45deg);
+            transform-origin: top center;
+        }
+
+        .sim-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 11;
+        }
+
+        .sim-btn-group {
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .sim-btn {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f1f5f9;
+            padding: 11px 22px;
+            border-radius: 30px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sim-btn:hover {
+            background: #1e293b;
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn-flare:hover {
+            color: #fbbf24;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+            border-color: rgba(251, 191, 36, 0.4);
+        }
+
+        .btn-cme:hover {
+            color: #f97316;
+            box-shadow: 0 0 15px rgba(249, 115, 22, 0.3);
+            border-color: rgba(249, 115, 22, 0.4);
+        }
+
+        .btn-reset:hover {
+            color: #38bdf8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+        }
+
+        .sim-status {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            color: #94a3b8;
+            max-width: 420px;
+            pointer-events: auto;
+            backdrop-filter: blur(8px);
+            font-weight: 400;
+        }
+
+        .status-active {
+            color: #f8fafc;
+            border-color: rgba(59, 130, 246, 0.3);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Split layout below simulator */
+        .split-layout {
+            display: grid;
+            grid-template-columns: 1.1fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 900px) {
+            .split-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Info Card Panel */
+        .info-card {
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            height: 440px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .info-header {
+            margin-bottom: 15px;
+        }
+
+        .info-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-title span {
+            font-size: 1.8rem;
+        }
+
+        .info-desc {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+            margin-bottom: 15px;
+        }
+
+        .param-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .param-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 10px 14px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .param-label {
+            color: #94a3b8;
+            font-weight: 400;
+        }
+
+        .param-val {
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .step-indicators {
+            display: flex;
+            gap: 8px;
+            margin-top: auto;
+        }
+
+        .step-dot {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .step-dot.active {
+            background: #8b5cf6;
+            box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+        }
+
+        /* Live Backend Predictor Console Terminal */
+        .console-container {
+            background: #060913;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            height: 440px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+        .console-header {
+            background: #0d1222;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .console-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .console-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot-red {
+            background: #ef4444;
+        }
+
+        .dot-yellow {
+            background: #fbbf24;
+        }
+
+        .dot-green {
+            background: #10b981;
+        }
+
+        .console-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #64748b;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .console-body {
+            flex-grow: 1;
+            padding: 16px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.82rem;
+            line-height: 1.55;
+            color: #38bdf8;
+            /* Cyan terminal text */
+        }
+
+        .console-line {
+            margin-bottom: 6px;
+            word-break: break-all;
+            opacity: 0;
+            transform: translateY(5px);
+            animation: logFadeIn 0.3s forwards ease-out;
+        }
+
+        @keyframes logFadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .log-time {
+            color: #475569;
+            margin-right: 8px;
+        }
+
+        .log-system {
+            color: #a78bfa;
+            font-weight: bold;
+        }
+
+        /* Purple for file execution */
+        .log-data {
+            color: #34d399;
+        }
+
+        /* Green for loading/saving data */
+        .log-physics {
+            color: #fb923c;
+        }
+
+        /* Orange for physics metrics */
+        .log-model {
+            color: #f472b6;
+        }
+
+        /* Pink for XGBoost operations */
+        .log-warning {
+            color: #f87171;
+            font-weight: bold;
+            animation: warningPulse 1s infinite alternate;
+        }
+
+        /* Flashing red warning */
+
+        @keyframes warningPulse {
+            from {
+                text-shadow: 0 0 2px rgba(248, 113, 113, 0.4);
+            }
+
+            to {
+                text-shadow: 0 0 8px rgba(248, 113, 113, 0.8);
+            }
+        }
+
+        /* Timeline Section */
+        .timeline-section {
+            margin-top: 30px;
+        }
+
+        .section-header {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .timeline-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            position: relative;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .timeline-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .timeline-line {
+            position: absolute;
+            top: 25px;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            background: linear-gradient(90deg, #fbbf24 0%, #f97316 25%, #3b82f6 50%, #8b5cf6 75%, #10b981 100%);
+            z-index: 1;
+            opacity: 0.3;
+        }
+
+        @media (max-width: 768px) {
+            .timeline-line {
+                display: none;
+            }
+        }
+
+        .timeline-card {
+            background: rgba(15, 23, 42, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: left;
+            position: relative;
+            z-index: 2;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .timeline-card:hover {
+            background: rgba(15, 23, 42, 0.6);
+            transform: translateY(-3px);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .timeline-card.active {
+            border-color: #8b5cf6;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.15);
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        .timeline-time {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: #8b5cf6;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            background: rgba(139, 92, 246, 0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .timeline-card:nth-child(2) .timeline-time {
+            color: #fbbf24;
+            background: rgba(251, 191, 36, 0.1);
+        }
+
+        .timeline-card:nth-child(3) .timeline-time {
+            color: #f97316;
+            background: rgba(249, 115, 22, 0.1);
+        }
+
+        .timeline-card:nth-child(4) .timeline-time {
+            color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .timeline-card:nth-child(5) .timeline-time {
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .timeline-card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .timeline-card-desc {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #94a3b8;
+        }
+
+        /* Correlation Network Section */
+        .network-section {
+            margin-top: 35px;
+        }
+
+        .network-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 900px) {
+            .network-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .network-canvas-container {
+            background: #020408;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            height: 420px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .network-tooltip {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 16px;
+            height: 420px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .network-tooltip-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+        }
+
+        .network-tooltip-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .network-tooltip-cat {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #8b5cf6;
+            font-weight: 600;
+        }
+
+        .network-tooltip-desc {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+            margin-bottom: 15px;
+            flex-grow: 1;
+        }
+
+        .network-stats {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            color: #94a3b8;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .hint {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Section 1: Panoramic Simulator -->
+        <div class="widescreen-panel">
+            <div class="sim-container">
+                <canvas id="spaceSim"></canvas>
+
+                <!-- floating diagram labels matching user attachment -->
+                <div class="sim-labels-overlay">
+                    <div class="sim-label label-sun" id="lblSun">
+                        <div class="label-title">SOLAR FLARE</div>
+                        <div class="label-subtitle color-solar">Energy Release</div>
+                        <div class="pointer-line line-sun"></div>
+                    </div>
+                    <div class="sim-label label-cme" id="lblCme">
+                        <div class="label-title">CME CLOUD</div>
+                        <div class="label-subtitle color-cme">Travels 24–72 Hours</div>
+                        <div class="pointer-line line-cme"></div>
+                    </div>
+                    <div class="sim-label label-earth" id="lblEarth">
+                        <div class="label-title">EARTH IMPACT</div>
+                        <div class="label-subtitle color-earth">Geomagnetic Storm</div>
+                        <div class="pointer-line line-earth"></div>
+                    </div>
+                </div>
+
+                <div class="sim-overlay">
+                    <div class="sim-btn-group">
+                        <button class="sim-btn btn-flare" onclick="triggerFlare()"><span style="color:#fbbf24">✦</span>
+                            Solar Flare</button>
+                        <button class="sim-btn btn-cme" onclick="triggerCME()"><span style="color:#f97316">◉</span>
+                            Launch CME</button>
+                        <button class="sim-btn btn-reset" onclick="resetSim()">Reset System</button>
+                    </div>
+                    <div id="simStatus" class="sim-status">Solar wind stable. Continuous particle flow.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONSOLE LOGGING MECHANISM (Dummy for compatibility) ---
+        function logToConsole(module, message, type = "system") {
+            // Logging elements removed as requested
+        }
+
+        // --- HUD OVERLAYS INTERACTIVITY ---
+        const lblSun = document.getElementById("lblSun");
+        const lblCme = document.getElementById("lblCme");
+        const lblEarth = document.getElementById("lblEarth");
+
+        function updateHUDLabels(flare, cme, earth) {
+            lblSun.classList.toggle("active", flare || (!cme && !earth));
+            lblCme.classList.toggle("active", cme);
+            lblEarth.classList.toggle("active", earth);
+        }
+
+        // --- SPACE WEATHER CANVAS PHYSICS SIMULATOR ---
+        const canvas = document.getElementById("spaceSim");
+        const ctx = canvas.getContext("2d");
+
+        // Resize Canvas
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Physics State Variables
+        let particles = [];
+        let solarFlareRays = [];
+        let cmeParticles = [];
+        let cmeActive = false;
+        let cmeProgress = 0;
+        let flareActive = false;
+        let flareProgress = 0;
+        let magnetosphereCompression = 1.0; // 1.0 = normal, 0.45 = high compression
+        let showAurora = false;
+        let auroraIntensity = 0;
+
+        // Logging State Flags
+        let flareImpactLogged = false;
+        let cmeImpactLogged = false;
+
+        // Particle Class
+        class Particle {
+            constructor(x, y, speed, size, color) {
+                this.x = x;
+                this.y = y;
+                this.speed = speed;
+                this.size = size;
+                this.color = color;
+                this.vx = speed;
+                this.vy = (Math.random() - 0.5) * 0.5;
+            }
+
+            update() {
+                const earthX = canvas.width * 0.85;
+                const earthY = canvas.height * 0.5;
+                const distToEarth = Math.sqrt((this.x - earthX) ** 2 + (this.y - earthY) ** 2);
+                const magnetosphereRadius = 120 * magnetosphereCompression;
+
+                if (distToEarth < magnetosphereRadius + 75 && this.x < earthX) {
+                    const angle = Math.atan2(this.y - earthY, this.x - earthX);
+                    this.vx += Math.cos(angle) * 0.2;
+                    this.vy += Math.sin(angle) * 0.3;
+
+                    if (distToEarth < magnetosphereRadius + 30 && Math.abs(angle) > Math.PI * 0.45) {
+                        this.color = "rgba(16, 185, 129, 0.8)";
+                    }
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+        }
+
+        // Initialize background solar wind
+        function spawnSolarWind() {
+            if (particles.length < 120) {
+                const sunRadius = 80;
+                const spawnAngle = (Math.random() - 0.5) * Math.PI * 0.4;
+                const startX = sunRadius + 10;
+                const startY = canvas.height / 2 + Math.sin(spawnAngle) * sunRadius;
+                particles.push(new Particle(
+                    startX,
+                    startY,
+                    1.8 + Math.random() * 2,
+                    1 + Math.random() * 2,
+                    "rgba(255, 255, 255, 0.15)"
+                ));
+            }
+        }
+
+        // Trigger Solar Flare Event
+        function triggerFlare() {
+            resetSim();
+            flareActive = true;
+            document.getElementById("simStatus").innerHTML = "🚨 Flare erupts! Photons arriving at speed of light.";
+            document.getElementById("simStatus").classList.add("status-active");
+
+            updateHUDLabels(true, false, false);
+
+            // Generate light rays
+            const rayCount = 20;
+            for (let i = 0; i < rayCount; i++) {
+                const angle = (Math.random() - 0.5) * Math.PI * 0.35;
+                solarFlareRays.push({
+                    angle: angle,
+                    speed: 24,
+                    length: 45,
+                    x: 80,
+                    y: canvas.height / 2
+                });
+            }
+
+            // Console logging
+            logToConsole("physics", "Solar flare eruption detected in active region AR13664.", "physics");
+            setTimeout(() => logToConsole("data", "Ingesting satellite soft X-ray solar flux data...", "data"), 250);
+            setTimeout(() => logToConsole("event_detector", "Running event_detector.py -> Class level: X8.9 (Extreme Flare)", "system"), 500);
+            setTimeout(() => logToConsole("model", "Assembling XGBoost inputs: [flare_intensity=89.0, duration=45min, active_region=13664]", "model"), 800);
+            setTimeout(() => logToConsole("model", "Executing xgboost_risk_model.pkl inference...", "model"), 1100);
+            setTimeout(() => logToConsole("model", "Inference result: predicted_kp_index = 8.7 (Severe Geomagnetic Storm potential)", "model"), 1400);
+        }
+
+        // Trigger CME Event
+        function triggerCME() {
+            resetSim();
+            cmeActive = true;
+            document.getElementById("simStatus").innerHTML = "☄️ CME shockwave launched! Coronal plasma heading to Earth.";
+            document.getElementById("simStatus").classList.add("status-active");
+
+            updateHUDLabels(false, true, false);
+
+            // Spawn dense cluster of plasma
+            const particleCount = 220;
+            for (let i = 0; i < particleCount; i++) {
+                const angle = (Math.random() - 0.5) * Math.PI * 0.4;
+                const speed = 3.5 + Math.random() * 6.5;
+                const size = 1.8 + Math.random() * 4;
+                const opacity = 0.4 + Math.random() * 0.5;
+                cmeParticles.push({
+                    x: 80,
+                    y: canvas.height / 2,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    size: size,
+                    color: `rgba(${230 + Math.random() * 25}, ${70 + Math.random() * 80}, 20, ${opacity})`
+                });
+            }
+
+            // Console logging
+            logToConsole("physics", "Coronal Mass Ejection (CME) shock front released from solar corona.", "physics");
+            setTimeout(() => logToConsole("data", "Ingesting LASCO C3 coronagraph velocity profile...", "data"), 250);
+            setTimeout(() => logToConsole("temporal_alignment", "Running temporal_alignment.py -> Computing future rolling indices...", "system"), 500);
+            setTimeout(() => logToConsole("temporal_alignment", "Aligned lag parameters: Transit time = 25.4 hours.", "system"), 800);
+            setTimeout(() => logToConsole("data", "Monitoring solar wind plasma density... (N_p = 45 cm^-3)", "data"), 1100);
+        }
+
+        // Reset Simulator
+        function resetSim() {
+            particles = [];
+            solarFlareRays = [];
+            cmeParticles = [];
+            cmeActive = false;
+            cmeProgress = 0;
+            flareActive = false;
+            flareProgress = 0;
+            magnetosphereCompression = 1.0;
+            showAurora = false;
+            auroraIntensity = 0;
+            flareImpactLogged = false;
+            cmeImpactLogged = false;
+
+            document.getElementById("simStatus").innerHTML = "Solar wind stable. Continuous particle flow.";
+            document.getElementById("simStatus").classList.remove("status-active");
+
+            updateHUDLabels(false, false, false);
+
+            logToConsole("system", "Clearing buffers. Resetting prediction pipeline state...", "system");
+            setTimeout(() => logToConsole("system", "Solar wind parameters stable (~380 km/s, 5 particles/cm³).", "system"), 300);
+        }
+
+        // Simulation Loop
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const sunX = 0;
+            const sunY = canvas.height / 2;
+            const earthX = canvas.width * 0.85;
+            const earthY = canvas.height / 2;
+
+            // 1. Draw Star Background
+            ctx.fillStyle = "#010204";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Twinkling stars
+            ctx.fillStyle = "rgba(255,255,255,0.18)";
+            for (let i = 0; i < 40; i++) {
+                let starX = (Math.sin(i * 1234) * 0.5 + 0.5) * canvas.width;
+                let starY = (Math.cos(i * 5678) * 0.5 + 0.5) * canvas.height;
+                ctx.fillRect(starX, starY, 1, 1);
+            }
+
+            // Draw faint background nebula (gorgeous orange & blue/purple gas layers)
+            let nebSun = ctx.createRadialGradient(sunX, sunY, 50, sunX, sunY, 250);
+            nebSun.addColorStop(0, 'rgba(239, 68, 68, 0.05)');
+            nebSun.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = nebSun;
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, 250, 0, Math.PI * 2);
+            ctx.fill();
+
+            let nebEarth = ctx.createRadialGradient(earthX, earthY, 50, earthX, earthY, 250);
+            nebEarth.addColorStop(0, 'rgba(59, 130, 246, 0.04)');
+            nebEarth.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = nebEarth;
+            ctx.beginPath();
+            ctx.arc(earthX, earthY, 250, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. Process Solar Wind
+            spawnSolarWind();
+            particles.forEach((p, idx) => {
+                p.update();
+                p.draw();
+                if (p.x > canvas.width + 10) {
+                    particles.splice(idx, 1);
+                }
+            });
+
+            // 3. Process Solar Flare (Photons)
+            if (flareActive) {
+                let raysHittingEarth = false;
+                solarFlareRays.forEach((r, idx) => {
+                    ctx.beginPath();
+                    ctx.moveTo(r.x, r.y);
+                    const nextX = r.x + Math.cos(r.angle) * r.length;
+                    const nextY = r.y + Math.sin(r.angle) * r.length;
+                    ctx.lineTo(nextX, nextY);
+                    ctx.strokeStyle = "rgba(252, 211, 77, 0.85)";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    r.x += Math.cos(r.angle) * r.speed;
+                    r.y += Math.sin(r.angle) * r.speed;
+
+                    if (r.x > earthX - 60) {
+                        raysHittingEarth = true;
+                    }
+
+                    if (r.x > canvas.width) {
+                        solarFlareRays.splice(idx, 1);
+                    }
+                });
+
+                if (raysHittingEarth) {
+                    // Ionospheric illumination
+                    ctx.beginPath();
+                    ctx.arc(earthX, earthY, 52, 0, Math.PI * 2);
+                    ctx.strokeStyle = "rgba(239, 68, 68, 0.75)";
+                    ctx.lineWidth = 6;
+                    ctx.stroke();
+
+                    document.getElementById("simStatus").innerHTML = "⚠️ Flare photons hitting ionosphere! HF Blackout initiated.";
+
+                    if (!flareImpactLogged) {
+                        flareImpactLogged = true;
+                        updateHUDLabels(true, false, true);
+                        logToConsole("physics", "Photons hit Earth's dayside ionosphere (transit time: 8.3 min).", "physics");
+                        logToConsole("warning", "Ionospheric D-layer excitation active. HF Radio Blackout Warning issued!", "warning");
+                    }
+                }
+
+                if (solarFlareRays.length === 0) {
+                    flareActive = false;
+                }
+            }
+
+            // 4. Process CME (Plasma Cloud)
+            if (cmeActive) {
+                let particlesHittingShield = 0;
+
+                cmeParticles.forEach((p, idx) => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+
+                    const distToEarth = Math.sqrt((p.x - earthX) ** 2 + (p.y - earthY) ** 2);
+                    const magnetosphereRadius = 120 * magnetosphereCompression;
+
+                    if (distToEarth < magnetosphereRadius + 60 && p.x < earthX) {
+                        particlesHittingShield++;
+                        const angle = Math.atan2(p.y - earthY, p.x - earthX);
+
+                        p.vx += Math.cos(angle) * 0.4;
+                        p.vy += Math.sin(angle) * 0.6;
+
+                        if (Math.abs(angle) > Math.PI * 0.4) {
+                            p.color = "rgba(16, 185, 129, 0.8)";
+                            p.vx = (earthX - p.x) * 0.05;
+                            p.vy = (earthY + (angle > 0 ? 22 : -22) - p.y) * 0.05;
+                            showAurora = true;
+                        }
+                    }
+
+                    // Draw gaseous cloud puff
+                    let grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 6.0);
+                    grad.addColorStop(0, p.color);
+                    grad.addColorStop(0.3, 'rgba(236, 72, 153, 0.15)'); // Subtle pink/purple
+                    grad.addColorStop(1, 'rgba(139, 92, 246, 0)');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size * 6.0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    if (p.x > canvas.width + 20) {
+                        cmeParticles.splice(idx, 1);
+                    }
+                });
+
+                // Magnetosphere deformation mechanics
+                if (particlesHittingShield > 5) {
+                    magnetosphereCompression = Math.max(0.45, magnetosphereCompression - 0.012);
+                    document.getElementById("simStatus").innerHTML = "🔥 CME shockwave compressing magnetosphere! Reconnection active.";
+
+                    if (!cmeImpactLogged) {
+                        cmeImpactLogged = true;
+                        updateHUDLabels(false, true, true);
+                        logToConsole("physics", "CME Shockwave hits magnetopause boundary. Stand-off distance compressed to 5.8 Re.", "physics");
+                        setTimeout(() => logToConsole("physics", "Southward magnetic reconnection active (Bz = -22 nT).", "physics"), 200);
+                        setTimeout(() => logToConsole("risk_engine", "Running risk_engine.py -> Ingesting geomagnetic parameters...", "system"), 500);
+                        setTimeout(() => logToConsole("risk_engine", "Calculated indices: Kp = 8.33, Dst = -185 nT.", "system"), 800);
+                        setTimeout(() => logToConsole("risk_engine", "Final Calculated Risk Score: 9.3 / 10 (EXTREME HAZARD)", "system"), 1100);
+                        setTimeout(() => logToConsole("warning", "Geomagnetic storm active. Polar auroras expanding. Induced currents active in power grids!", "warning"), 1400);
+                    }
+                } else {
+                    magnetosphereCompression = Math.min(1.0, magnetosphereCompression + 0.003);
+                }
+
+                if (cmeParticles.length === 0) {
+                    cmeActive = false;
+                }
+            }
+
+            // 5. Draw Magnetosphere Lines (Bezier curves with glow)
+            ctx.save();
+            ctx.lineWidth = 2.2;
+            const shieldComp = magnetosphereCompression;
+            ctx.strokeStyle = `rgba(96, 165, 250, ${0.25 + (1 - shieldComp) * 0.5})`;
+            ctx.shadowColor = "#60a5fa";
+            ctx.shadowBlur = 10;
+
+            for (let i = 1; i <= 4; i++) {
+                const heightMult = i * 35;
+                const dayDist = i * 42 * shieldComp;
+                const nightDist = i * 200 * (2 - shieldComp);
+
+                // Top field line
+                ctx.beginPath();
+                ctx.moveTo(earthX, earthY - 15);
+                ctx.bezierCurveTo(
+                    earthX - dayDist, earthY - heightMult,
+                    earthX + nightDist, earthY - heightMult * 1.5,
+                    earthX, earthY + 15
+                );
+                ctx.stroke();
+
+                // Bottom field line
+                ctx.beginPath();
+                ctx.moveTo(earthX, earthY + 15);
+                ctx.bezierCurveTo(
+                    earthX - dayDist, earthY + heightMult,
+                    earthX + nightDist, earthY + heightMult * 1.5,
+                    earthX, earthY - 15
+                );
+                ctx.stroke();
+            }
+            ctx.restore(); // remove shadowBlur
+
+            // 6. Draw Aurora at Poles
+            if (showAurora) {
+                auroraIntensity = Math.min(1.0, auroraIntensity + 0.05);
+            } else {
+                auroraIntensity = Math.max(0, auroraIntensity - 0.02);
+            }
+
+            if (auroraIntensity > 0) {
+                // North Pole Aurora Glow
+                const northGlow = ctx.createRadialGradient(earthX, earthY - 22, 0, earthX, earthY - 22, 42);
+                northGlow.addColorStop(0, `rgba(16, 185, 129, ${0.75 * auroraIntensity})`);
+                northGlow.addColorStop(1, 'rgba(16, 185, 129, 0)');
+                ctx.fillStyle = northGlow;
+                ctx.beginPath();
+                ctx.arc(earthX, earthY - 22, 42, 0, Math.PI * 2);
+                ctx.fill();
+
+                // South Pole Aurora Glow
+                const southGlow = ctx.createRadialGradient(earthX, earthY + 22, 0, earthX, earthY + 22, 42);
+                southGlow.addColorStop(0, `rgba(16, 185, 129, ${0.75 * auroraIntensity})`);
+                southGlow.addColorStop(1, 'rgba(16, 185, 129, 0)');
+                ctx.fillStyle = southGlow;
+                ctx.beginPath();
+                ctx.arc(earthX, earthY + 22, 42, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 7. Draw Earth
+            // Earth Glow
+            const earthGlow = ctx.createRadialGradient(earthX, earthY, 18, earthX, earthY, 38);
+            earthGlow.addColorStop(0, '#3b82f6');
+            earthGlow.addColorStop(0.6, 'rgba(59, 130, 246, 0.4)');
+            earthGlow.addColorStop(1, 'rgba(59, 130, 246, 0)');
+            ctx.fillStyle = earthGlow;
+            ctx.beginPath();
+            ctx.arc(earthX, earthY, 38, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Earth Core
+            ctx.beginPath();
+            ctx.arc(earthX, earthY, 18, 0, Math.PI * 2);
+            ctx.fillStyle = "#1d4ed8";
+            ctx.fill();
+
+            // Continents
+            ctx.beginPath();
+            ctx.arc(earthX - 4, earthY - 6, 6, 0, Math.PI);
+            ctx.fillStyle = "#10b981";
+            ctx.fill();
+
+            // 8. Draw Sun
+            let coronaPulse = 1.0 + Math.sin(Date.now() * 0.003) * 0.04;
+            const sunGlow = ctx.createRadialGradient(sunX, sunY, 15, sunX, sunY, 110 * coronaPulse);
+            sunGlow.addColorStop(0, '#fef08a');
+            sunGlow.addColorStop(0.2, '#f59e0b');
+            sunGlow.addColorStop(0.6, 'rgba(239, 68, 68, 0.35)');
+            sunGlow.addColorStop(1, 'rgba(239, 68, 68, 0)');
+            ctx.fillStyle = sunGlow;
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, 110 * coronaPulse, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Dynamic solar loops/prominences
+            ctx.strokeStyle = "rgba(249, 115, 22, 0.5)";
+            ctx.lineWidth = 2.5;
+            for (let i = 0; i < 5; i++) {
+                let angle = (i - 2) * 0.28;
+                let edgeX = sunX + Math.cos(angle) * 60;
+                let edgeY = sunY + Math.sin(angle) * 60;
+                let pulseDist = 16 + Math.sin(Date.now() * 0.004 + i) * 10;
+                let ctrlX = sunX + Math.cos(angle) * (60 + pulseDist * 2);
+                let ctrlY = sunY + Math.sin(angle) * (60 + pulseDist * 2);
+                let endX = sunX + Math.cos(angle + 0.1) * 60;
+                let endY = sunY + Math.sin(angle + 0.1) * 60;
+
+                ctx.beginPath();
+                ctx.moveTo(edgeX, edgeY);
+                ctx.quadraticCurveTo(ctrlX, ctrlY, endX, endY);
+                ctx.stroke();
+            }
+
+            // Sun Core
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, 60, 0, Math.PI * 2);
+            ctx.fillStyle = "#f59e0b";
+            ctx.fill();
+
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Startup initialization
+        window.onload = function () {
+            updateHUDLabels(false, false, false);
+        };
+    </script>
+</body>
+
+</html>

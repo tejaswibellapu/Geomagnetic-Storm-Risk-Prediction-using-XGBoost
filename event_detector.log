@@ -1,0 +1,3 @@
+2026-06-10 17:42:47,418 [INFO] Starting significant event detection...
+2026-06-10 17:42:47,850 [INFO] Found 1842 major (M/X class) solar flare events.
+2026-06-10 17:42:48,559 [INFO] Saved 1842 detected significant events to: D:\minip_AG_1006\data\significant_events.csv
